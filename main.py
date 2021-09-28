@@ -9,6 +9,7 @@ logger = logging.getLogger('iBroadcast_CLI')
 
 def setup_subcommands():
     def add_common_args(parser):
+        parser.add_argument("-d", "--dryrun", action="store_true", default=False, help="do not actually make changes")
         parser.add_argument("-p", "--password", help="password for iBroadcast account")
         parser.add_argument("-u", "--username", required=True, help="username for iBroadcast account")
         parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose logging")
@@ -49,13 +50,16 @@ def setup_subcommands():
     return parser
 
 def create_playlist(args):
-    ibroadcast_api.CreatePlayList(uName=args.name, uDescription=args.description, bPublic=args.public)
+    if not args.dryrun:
+        ibroadcast_api.CreatePlayList(uName=args.name, uDescription=args.description, bPublic=args.public)
 
 def select_albums_by_albumname(args):
-    ibroadcast_api.SelectAlbumsByAlbumName(uFilter=args.filter)
+    if not args.dryrun:
+        ibroadcast_api.SelectAlbumsByAlbumName(uFilter=args.filter)
 
 def select_tracks_by_folder(args):
-    ibroadcast_api.SelectTracksByFolder(uFolder=args.folder)
+    if not args.dryrun:
+        ibroadcast_api.SelectTracksByFolder(uFolder=args.folder)
 
 def upload_folder(args):
     def list_files(folder, supported_filetypes, recursive, verbose):
@@ -90,9 +94,10 @@ def upload_folder(args):
     for filename in folder_files:
         if args.verbose:
             logger.debug(f"Uploading {filename}")
-        success = ibroadcast_api.UploadTrack(filename, bForce=args.force)
-        if not success:
-            logger.info(f"Upload of {filename} failed.")
+        if not args.dryrun:
+            success = ibroadcast_api.UploadTrack(filename, bForce=args.force)
+            if not success:
+                logger.info(f"Upload of {filename} failed.")
 
 if __name__ == '__main__':
     log_level = logging.INFO
@@ -109,6 +114,8 @@ if __name__ == '__main__':
         exit(0)
     if args.password is None:
         args.password = getpass.getpass(f"Enter password for {args.username}: ")
+    if args.dryrun:
+        logger.info("Changes are suppressed by --dryrun")
     ibroadcast_api = ciBroadCast(bAllowUndocumentedAPIs=True, iLogLevel=log_level)
     ibroadcast_api.Login(uUserName=args.username, uPassword=args.password)
     args.operation_func(args)
