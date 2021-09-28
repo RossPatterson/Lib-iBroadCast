@@ -67,7 +67,7 @@ class ciBroadCast:
     """
 
 
-    def __init__(self):
+    def __init__(self, iLogLevel:int=logging.DEBUG):
         self._uVersion:str              = '1.0.0'
         self._uClient:str               = "lib_iBroadCast"
         self._uUserName:str             = ''
@@ -75,7 +75,7 @@ class ciBroadCast:
         self._uDeviceName:str           = 'lib_iBroadCast'
         self._dLibrary:Dict             = {}                # The complete user library
         self._aAlbums:List[str]         = []                # List of all SELECTED albums (add album function)
-        self._aTracks:List[str]          = []                # List of all SELECTED songs (add songs function)
+        self._aTracks:List[str]         = []                # List of all SELECTED songs (add songs function)
         self._aPlayListIndex:List       = []                # List of all playlists, index reference only
         self._dPlayListName:Dict        = {}                # dict of playlist,key is playlist name, value ist list of playlist values
         self._uUserId:str               = ''
@@ -93,26 +93,34 @@ class ciBroadCast:
 
 
         self.oLogger:logging           = logging.getLogger('lib_iBroadcast')
-        self.InitLogger()
+        self.InitLogger(iLogLevel)
 
-    def InitLogger(self) -> None:
+    def InitLogger(self, iLogLevel:int=logging.DEBUG) -> None:
         """
         Initializes the logger to set the log level and a console handler
         :return: None
         """
 
-        self.oLogger.setLevel(logging.DEBUG)
+        self.oLogger.setLevel(iLogLevel)
         oConsoleHandle = logging.StreamHandler()
-        oConsoleHandle.setLevel(logging.DEBUG)
+        oConsoleHandle.setLevel(iLogLevel)
         self.oLogger.addHandler(oConsoleHandle)
 
     def _LogError(self,*, uMsg:str) -> None:
         """
-        Internal helper to log a error line
+        Internal helper to log an error line
         :param str uMsg: The message to log
         :return: None
         """
         self.oLogger.error(f"{self._uLogPrefix}{uMsg}")
+
+    def _LogInfo(self,*, uMsg:str) -> None:
+        """
+        Internal helper to log an info line
+        :param str uMsg: The message to log
+        :return: None
+        """
+        self.oLogger.info(f"{self._uLogPrefix}{uMsg}")
 
     def _LogDebug(self,*, uMsg:str) -> None:
         """
