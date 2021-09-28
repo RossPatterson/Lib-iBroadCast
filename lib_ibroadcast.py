@@ -352,6 +352,7 @@ class ciBroadCast:
         """
         Post a simple iBroadcast API command
         :param str uCommand: The command to post
+        :param dict dAddPar: Additional parameters
         :return: A result dictionary
         """
 
@@ -374,21 +375,33 @@ class ciBroadCast:
 
     def _PostRequest(self, uCommand:str) -> Dict:
         """
-        Post a fully prepared iBroadcast API string
+        Post a fully prepared iBroadcast API request to the standard URL
         :param str uCommand: The command string to post
         :return: A result dictionary
+        """
+
+        return self._Post(self._uUrl, uData=uCommand, dHeaders=self._dHeaders).json()
+
+    def _Post(self, uUrl:str, uData:str='', dHeaders:dict={}, dFiles:dict=None): # -> Response:
+        """
+        Post a fully prepared iBroadcast API string
+        :param str uUrl: The URL to post to
+        :param str uCommand: The data string to post
+        :param dict dHeaders: The request headers to post
+        :param dict dFiles: Open file(s) to post
+        :return: A response object
         """
 
         oResponse:Response
         uMsg:str
 
         try:
-            oResponse = requests.post(self._uUrl, data=uCommand, headers=self._dHeaders)
+            oResponse = requests.post(uUrl, data=uData, headers=dHeaders, files=dFiles)
             if not oResponse.ok:
-                uMsg = f'Server returned bad status on command {uCommand} : Status code: {oResponse.status_code}'
+                uMsg = f'Server returned bad status on command {uData} : Status code: {oResponse.status_code}'
                 self._LogError(uMsg=uMsg)
                 raise ServerError(uMsg)
-            return oResponse.json()
+            return oResponse
         except Exception:
             raise ServerError('Server connection error')
 
