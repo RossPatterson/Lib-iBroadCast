@@ -9,6 +9,7 @@ A simple command line script with helper functions, developed for convenient cre
 from typing import Dict
 from typing import List
 from typing import Union
+import hashlib
 import logging
 import requests
 import json
@@ -67,7 +68,7 @@ class ciBroadCast:
     """
 
 
-    def __init__(self, iLogLevel:int=logging.DEBUG):
+    def __init__(self, bAllowUndocumentedAPIs:bool=False, iLogLevel:int=logging.DEBUG):
         self._uVersion:str              = '1.0.0'
         self._uClient:str               = "lib_iBroadCast"
         self._uUserName:str             = ''
@@ -90,7 +91,9 @@ class ciBroadCast:
         self._iPlayLists_IndexPlayListName:int = 0
         self._dMap_Tracks:Dict[str,int] = {}
         self._iTracks_IndexPath:int     = 0
-
+        self._aMD5s:List[str]           = []                # All the MD5 checksums the server knows about.
+        self._uUploadUrl:str            = "https://upload.ibroadcast.com"
+        self._bAllowUndocumentedAPIs:bool = bAllowUndocumentedAPIs
 
         self.oLogger:logging           = logging.getLogger('lib_iBroadcast')
         self.InitLogger(iLogLevel)
@@ -405,3 +408,104 @@ class ciBroadCast:
         except Exception:
             raise ServerError('Server connection error')
 
+    def GetMD5s(self) -> List[str]:
+        """
+        Retrieves the MD5 checksums from
+        a user library from iBroadcast
+
+        *** THIS API IS UNDOCUMENTED! USE AT YOUR OWN RISK! ***
+        :return: an array of the library's MD5 checksums
+        """
+        # This API was discovered in the ibroadcast-uploader.py sample.
+        if not self._bAllowUndocumentedAPIs:
+            raise ServerError("Undocumented APIs have not been enabled.")
+
+        oResponse:Response
+        uData:str=f'user_id={self._uUserId}&token={self._uToken}'
+        dHeaders:dict={'Content-Type': 'application/x-www-form-urlencoded'}
+
+        self._LogDebug(uMsg='Getting user MD5 checksums')
+        oResponse = self._Post(self._uUploadUrl, uData=uData, dHeaders=dHeaders)
+        dResult = oResponse.json()
+        if 'md5' not in dResult:
+            raise ServerError('Server returned a response we do not understand.')
+        self._aMD5s = dResult['md5']
+        self._LogDebug(uMsg=f"Loaded {len(self._aMD5s)} checksums")
+        return self._aMD5s
+
+    def GetSupportedFiletypes(self) -> Dict:
+        """
+        Retrieves the list of supported media filetypes from iBroadcast
+
+        *** THIS API IS UNDOCUMENTED! USE AT YOUR OWN RISK! ***
+        :return: an array of the library's MD5 checksums
+        """
+        # This API was discovered in the ibroadcast-uploader.py sample.
+        if not self._bAllowUndocumentedAPIs:
+            raise ServerError("Undocumented APIs have not been enabled.")
+
+        aExtensions:List[str] = []
+        dRet:Dict
+        uFiletype:str
+
+        self._LogDebug(uMsg='Getting supported filetypes')
+        dRet = self._PostCommand(uCommand='status', dAddPar={'supported_types': 1,})
+        if 'supported' not in dRet:
+            raise ServerError('Server returned a response we do not understand.')
+        for uFiletype in dRet['supported']:
+            aExtensions.append(uFiletype['extension'])
+        return aExtensions
+
+    def UploadTrack(self, uFilepath:str, bForce:bool=False) -> bool:
+        """
+        Uploads a track file to the user library in iBroadcast
+
+        *** THIS API IS UNDOCUMENTED! USE AT YOUR OWN RISK! ***
+        :param str uFilepath: The file to upload.
+        :param bool bForce: True if the file should be uploaded even if it is already present.
+        :return: True if successful, False otherwise
+        """
+        # This API was discovered in the ibroadcast-uploader.py sample.
+        if not self._bAllowUndocumentedAPIs:
+            raise ServerError("Undocumented APIs have not been enabled.")
+
+        oResponse:Response
+        uData:str
+        uTrackMD5:str = ""
+        oUploadFile:File
+
+        self._LogDebug(uMsg='Uploading file')
+        if not bForce:
+            if not self._aMD5s:
+                self.GetMD5s()
+            # Get an md5 of the file contents and compare it to what's up
+            # there already
+            uTrackMD5 = self._CalcMD5(uFilepath)
+            if uTrackMD5 in self._aMD5s:
+                self._LogDebug(uMsg=f'File {uFilepath} has already been uploaded, skipping.')
+                return True    # Arguable if this is a "successful" upload or not :-(
+
+        uData = {
+            'user_id': self._uUserId,
+            'token': self._uToken,
+            'file_path': uFilepath,
+            'method': self._uClient
+        }
+        with open(uFilepath, 'rb') as oUploadFile:
+            oResponse = self._Post(self._uUploadUrl, uData=uData, dFiles={'file': oUploadFile})
+            result = oResponse.json().get('result',False)
+            if result:
+                self._aMD5s.append(uTrackMD5)
+            return result
+
+    def _CalcMD5(self, uFilepath:str):
+        oFile:File
+        oHash:Hash
+        uChunk:str
+        with open(uFilepath, 'rb') as oFile:
+            oHash = hashlib.md5()
+            uChunk = oFile.read(8192)
+            while uChunk:
+                oHash.update(uChunk)
+                uChunk = oFile.read(8192)
+        return oHash.hexdigest()

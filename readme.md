@@ -35,7 +35,17 @@ Limitations:
 It is designed to perform instructions straight forward. Changes to the library or not refreshed after a change
 This hasn't been heavily tested , but works fine for me
 
+Undocumented stuff
+==================
 
+The iBroadcast API is very new - first released in 2021-03.  We've discovered some undocumented endpoints,
+which may or may not work, and may stop working at any time.  Caveat, programmator!
 
+Library:
+- GetMD5s: Reads and caches the MD5 checksums of all the tracks in the user library from iBroadcast.
 
+Tracks:
+- UploadTrack: Upload a track to iBroadcast and add it to the user library.  Adds the track's MD5 checksum to the cache if successful.
 
+Other:
+- GetSupportedFiletypes: Reads the list of supported media filetypes from iBroadcast.
