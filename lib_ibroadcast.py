@@ -426,14 +426,14 @@ class ciBroadCast:
 
         self._LogDebug(uMsg='Getting user MD5 checksums')
         oResponse = self._Post(self._uUploadUrl, uData=uData, dHeaders=dHeaders)
-        dResult = oResponse.json()
+        dResult:Dict = oResponse.json()
         if 'md5' not in dResult:
             raise ServerError('Server returned a response we do not understand.')
         self._aMD5s = dResult['md5']
         self._LogDebug(uMsg=f"Loaded {len(self._aMD5s)} checksums")
         return self._aMD5s
 
-    def GetSupportedFiletypes(self) -> Dict:
+    def GetSupportedFiletypes(self) -> List[str]:
         """
         Retrieves the list of supported media filetypes from iBroadcast
 
@@ -493,12 +493,12 @@ class ciBroadCast:
         }
         with open(uFilepath, 'rb') as oUploadFile:
             oResponse = self._Post(self._uUploadUrl, uData=uData, dFiles={'file': oUploadFile})
-            result = oResponse.json().get('result',False)
+            result:bool = oResponse.json().get('result',False)
             if result:
                 self._aMD5s.append(uTrackMD5)
             return result
 
-    def _CalcMD5(self, uFilepath:str):
+    def _CalcMD5(self, uFilepath:str) -> str:
         oFile:File
         oHash:Hash
         uChunk:str
