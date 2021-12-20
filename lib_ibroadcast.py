@@ -11,8 +11,10 @@ from typing import List
 from typing import Union
 import hashlib
 import logging
+import logging.config
 import requests
 import json
+from os import path
 
 
 class ServerError(Exception):
@@ -68,7 +70,7 @@ class ciBroadCast:
     """
 
 
-    def __init__(self, bAllowUndocumentedAPIs:bool=False, iLogLevel:int=logging.DEBUG):
+    def __init__(self, bAllowUndocumentedAPIs:bool=False, iLogLevel:int=None):
         self._uVersion:str              = '1.0.0'
         self._uClient:str               = "lib_iBroadCast"
         self._uUserName:str             = ''
@@ -95,19 +97,19 @@ class ciBroadCast:
         self._uUploadUrl:str            = "https://upload.ibroadcast.com"
         self._bAllowUndocumentedAPIs:bool = bAllowUndocumentedAPIs
 
-        self.oLogger:logging           = logging.getLogger('lib_iBroadcast')
+        self.oLogger:logging           = logging.getLogger(__name__)
         self.InitLogger(iLogLevel)
 
-    def InitLogger(self, iLogLevel:int=logging.DEBUG) -> None:
+    def InitLogger(self, iLogLevel:int=None) -> None:
         """
         Initializes the logger to set the log level and a console handler
         :return: None
         """
 
-        self.oLogger.setLevel(iLogLevel)
-        oConsoleHandle = logging.StreamHandler()
-        oConsoleHandle.setLevel(iLogLevel)
-        self.oLogger.addHandler(oConsoleHandle)
+        logging.config.fileConfig(path.join(path.dirname(path.abspath(__file__)), 'logging.conf'), disable_existing_loggers=False)
+
+        if iLogLevel:
+            self.oLogger.setLevel(iLogLevel)
 
     def _LogError(self,*, uMsg:str) -> None:
         """
@@ -482,7 +484,7 @@ class ciBroadCast:
             # there already
             uTrackMD5 = self._CalcMD5(uFilepath)
             if uTrackMD5 in self._aMD5s:
-                self._LogDebug(uMsg=f'File {uFilepath} has already been uploaded, skipping.')
+                self._LogInfo(uMsg=f'File {uFilepath} has already been uploaded, skipping.')
                 return True    # Arguable if this is a "successful" upload or not :-(
 
         uData = {

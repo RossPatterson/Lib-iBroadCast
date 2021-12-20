@@ -3,11 +3,14 @@ import getpass
 import glob
 from lib_ibroadcast import ciBroadCast
 import logging
+import logging.config
 import os
+from os import path
 from typing import Dict
 from typing import List
 
-logger:logging.Logger = logging.getLogger('iBroadcast_CLI')
+logging.config.fileConfig(path.join(path.dirname(path.abspath(__file__)), 'logging.conf'))
+logger:logging.Logger = logging.getLogger(__name__)
 
 def setup_subcommands() -> argparse.ArgumentParser:
     """
@@ -73,7 +76,7 @@ def upload_folder(args:argparse.Namespace) -> None:
     """
     Update all the songs in a folder.
     """
-    def list_files(folder:str, supported_filetypes:List[str], recursive:bool, verbose:bool) -> List[str]:
+    def list_files(folder:str, supported_filetypes:List[str], recursive:bool) -> List[str]:
         """
         Enumerate all files in the folder that match the supported extension list, possbly recursing
         into subfolders, and ignoring "hidden" files (".whatever").
@@ -89,34 +92,33 @@ def upload_folder(args:argparse.Namespace) -> None:
                 continue
             if os.path.isdir(filename):
                 if recursive:
-                    if verbose:
-                        logger.debug(f"Recursing into {filename}")
-                    files += list_files(filename, supported_filetypes, recursive, verbose)
+                    logger.debug(f"Recursing into {filename}")
+                    files += list_files(filename, supported_filetypes, recursive)
                 continue
             _, ext = os.path.splitext(basename)
             if ext not in supported_filetypes:
-                if verbose:
-                    logger.debug(f"Skipping {filename} - not a supported filetype")
+                logger.error(f"Skipping {filename} - not a supported filetype")
                 continue
             files.append(filename)
         return files
     filename:str
-    if args.verbose:
-        logger.debug(f"Uploading tracks from {args.folder}{' recursively' if args.recursive else ''}")
+    logger.debug(f"Uploading tracks from {args.folder}{' recursively' if args.recursive else ''}")
     supported_filetypes:Dict = ibroadcast_api.GetSupportedFiletypes()
     folder_files:List[str] = list_files(args.folder, supported_filetypes, args.recursive, args.verbose)
     for filename in folder_files:
-        if args.verbose:
-            logger.debug(f"Uploading {filename}")
-        if not args.dryrun:
-            success:bool = ibroadcast_api.UploadTrack(filename, bForce=args.force)
-            if not success:
-                logger.info(f"Upload of {filename} failed.")
+        logger.debug(f"Processing {filename}")
+        if args.dryrun:
+            logger.info(f"Skipping {filename} - dry run mode")
+            continue
+        success:bool = ibroadcast_api.UploadTrack(filename, bForce=args.force)
+        if success:
+            logger.info(f"Upload of {filename} succeeded.")
+        else:
+            logger.error(f"Upload of {filename} failed.")
+
 
 if __name__ == '__main__':
     log_level:int = logging.INFO
-    logger.setLevel(log_level)
-    logger.addHandler(logging.StreamHandler())
 
     parser:argparse.ArgumentParser = setup_subcommands()
     args:argparse.Namespace = parser.parse_args()
