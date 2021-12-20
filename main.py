@@ -85,17 +85,13 @@ def upload_folder(args:argparse.Namespace) -> None:
     def list_files(folder:str, supported_filetypes:List[str], recursive:bool) -> List[str]:
         """
         Enumerate all files in the folder that match the supported extension list, possbly recursing
-        into subfolders, and ignoring "hidden" files (".whatever").
+        into subfolders.  "Hidden" files (i.e., matching the regexp "\..*") are ignored, as per glob.glob().
         """
         ext:str
         files:str = []
         filename:str
         for filename in glob.glob(os.path.join(folder, '*')):
             basename:str = os.path.basename(filename)
-            if basename.startswith('.'):
-                if verbose:
-                    logger.debug(f"Skipping {filename} - 'hidden' file")
-                continue
             if os.path.isdir(filename):
                 if recursive:
                     logger.debug(f"Recursing into {filename}")
