@@ -58,6 +58,12 @@ def setup_subcommands() -> argparse.ArgumentParser:
     parser_uf.add_argument("-F", "--force", action="store_true", default=False, help="Upload even if previously uploaded")
     parser_uf.add_argument("-r", "--recursive", action="store_true", default=False, help="Upload folder recursively")
 
+    parser_ut:argparse.ArgumentParser = subparsers.add_parser("upload_track", aliases=["uf"])
+    parser_ut.set_defaults(operation_func = upload_track)
+    add_common_args(parser_ut)
+    parser_ut.add_argument("-t", "--track", required=True, help="Track to upload")
+    parser_ut.add_argument("-F", "--force", action="store_true", default=False, help="Upload even if previously uploaded")
+
     return parser
 
 def create_playlist(args:argparse.Namespace) -> None:
@@ -104,7 +110,7 @@ def upload_folder(args:argparse.Namespace) -> None:
     filename:str
     logger.debug(f"Uploading tracks from {args.folder}{' recursively' if args.recursive else ''}")
     supported_filetypes:Dict = ibroadcast_api.GetSupportedFiletypes()
-    folder_files:List[str] = list_files(args.folder, supported_filetypes, args.recursive, args.verbose)
+    folder_files:List[str] = list_files(args.folder, supported_filetypes, args.recursive)
     for filename in folder_files:
         logger.debug(f"Processing {filename}")
         if args.dryrun:
@@ -116,6 +122,26 @@ def upload_folder(args:argparse.Namespace) -> None:
         else:
             logger.error(f"Upload of {filename} failed.")
 
+def upload_track(args:argparse.Namespace) -> None:
+    """
+    Update a single song.
+    """
+    ext:str
+    filename:str = args.track
+    logger.debug(f"Uploading track {filename}")
+    supported_filetypes:Dict = ibroadcast_api.GetSupportedFiletypes()
+    _, ext = os.path.splitext(os.path.basename(filename))
+    if ext not in supported_filetypes:
+        logger.error(f"Skipping {filename} - not a supported filetype")
+        return
+    if args.dryrun:
+        logger.info(f"Skipping {filename} - dry run mode")
+        return
+    success:bool = ibroadcast_api.UploadTrack(filename, bForce=args.force)
+    if success:
+        logger.info(f"Upload of {filename} succeeded.")
+    else:
+        logger.error(f"Upload of {filename} failed.")
 
 if __name__ == '__main__':
     log_level:int = logging.INFO
