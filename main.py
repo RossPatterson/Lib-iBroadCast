@@ -2,6 +2,7 @@ import argparse
 import getpass
 import glob
 from lib_ibroadcast import ciBroadCast
+from lib_ibroadcast import cUploadStatus
 import logging
 import logging.config
 import os
@@ -112,11 +113,15 @@ def upload_folder(args:argparse.Namespace) -> None:
         if args.dryrun:
             logger.info(f"Skipping {filename} - dry run mode")
             continue
-        success:bool = ibroadcast_api.UploadTrack(filename, bForce=args.force)
-        if success:
+        status: cUploadStatus = ibroadcast_api.UploadTrack(filename, bForce=args.force)
+        if status.status == "S":
             logger.info(f"Upload of {filename} succeeded.")
+        elif status.status == "F":
+            logger.info(f"Upload of {filename} failed.")
+        elif status.status == "D":
+            logger.info(f"Upload of {filename} skipped - already uploaded.")
         else:
-            logger.error(f"Upload of {filename} failed.")
+            logger.error(f"Unknown UploadStatus {status.status} for {filename}.")
 
 def upload_track(args:argparse.Namespace) -> None:
     """

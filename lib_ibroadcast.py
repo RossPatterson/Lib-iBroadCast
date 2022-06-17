@@ -23,6 +23,20 @@ class ServerError(Exception):
     """
     pass
 
+
+class cUploadStatus:
+    status:str # "S" for success, "F" for failure, "D" for duplicate (not uploaded)
+
+    def __init__(self, _status:str):
+        if _status == "success":
+            self.status = "S"
+        elif _status == "failure":
+            self.status = "F"
+        elif _status == "duplicate":
+            self.status = "D"
+        else:
+            _self.status = "?"
+
 def MatchWildCard(*,uValue:str,uMatchWithWildCard:str) -> bool:
     """
     The main function that checks if two given strings match.
@@ -458,14 +472,14 @@ class ciBroadCast:
             aExtensions.append(uFiletype['extension'])
         return aExtensions
 
-    def UploadTrack(self, uFilepath:str, bForce:bool=False) -> bool:
+    def UploadTrack(self, uFilepath:str, bForce:bool=False) -> cUploadStatus:
         """
         Uploads a track file to the user library in iBroadcast
 
         *** THIS API IS UNDOCUMENTED! USE AT YOUR OWN RISK! ***
         :param str uFilepath: The file to upload.
         :param bool bForce: True if the file should be uploaded even if it is already present.
-        :return: True if successful, False otherwise
+        :return: cUploadStatus.status="S"/"F"/"D" for success/failure/duplicate
         """
         # This API was discovered in the ibroadcast-uploader.py sample.
         if not self._bAllowUndocumentedAPIs:
@@ -475,6 +489,7 @@ class ciBroadCast:
         uData:str
         uTrackMD5:str = ""
         oUploadFile:File
+        status:str = "?"
 
         self._LogDebug(uMsg='Uploading file')
         if not bForce:
@@ -484,8 +499,8 @@ class ciBroadCast:
             # there already
             uTrackMD5 = self._CalcMD5(uFilepath)
             if uTrackMD5 in self._aMD5s:
-                self._LogInfo(uMsg=f'File {uFilepath} has already been uploaded, skipping.')
-                return True    # Arguable if this is a "successful" upload or not :-(
+                self._LogDebug(uMsg=f'File {uFilepath} has already been uploaded, skipping.')
+                return cUploadStatus("duplicate")
 
         uData = {
             'user_id': self._uUserId,
@@ -498,7 +513,10 @@ class ciBroadCast:
             result:bool = oResponse.json().get('result',False)
             if result:
                 self._aMD5s.append(uTrackMD5)
-            return result
+                status = "success"
+            else:
+                status = "failure"
+            return cUploadStatus(status)
 
     def _CalcMD5(self, uFilepath:str) -> str:
         oFile:File
@@ -510,4 +528,6 @@ class ciBroadCast:
             while uChunk:
                 oHash.update(uChunk)
                 uChunk = oFile.read(8192)
-        return oHash.hexdigest()
+        result:str = oHash.hexdigest()
+        self._LogDebug(uMsg=f'Checksum of {uFilepath} is {result}')
+        return result
