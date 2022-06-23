@@ -45,6 +45,7 @@ Library:
 - GetMD5s: Reads and caches the MD5 checksums of all the tracks in the user library from iBroadcast.
 
 Tracks:
+- UpdateTrack: Makes changes to the details of a track in the user libary.
 - UploadTrack: Upload a track to iBroadcast and add it to the user library.  Adds the track's MD5 checksum to the cache if successful.
 
 Other:

@@ -472,7 +472,62 @@ class ciBroadCast:
             aExtensions.append(uFiletype['extension'])
         return aExtensions
 
-    def UploadTrack(self, uFilepath:str, bForce:bool=False) -> cUploadStatus:
+    def UpdateTrack(self, aTracks: List[Dict]) -> bool:
+        """
+        Updates the track details for a track in
+        a user library in iBroadcast
+
+        *** THIS API IS UNDOCUMENTED! USE AT YOUR OWN RISK! ***
+        :param List[Dict] aTracks: An array of track objects to update on the iBroadcast server.
+        :return: True if successful, False otherwise
+        """
+        # This API was discovered running Wireshark against https://edit.ibroadcast.com.
+        if not self._bAllowUndocumentedAPIs:
+            raise ServerError("Undocumented APIs have not been enabled.")
+
+        # aTracks is an array of dicts, one per track to be updated.  We
+        # don't know if all the fields are required, but edit.ibroadcast.com
+        # always sends all of them, no matter how few have been changed.  Here's
+        # an example:
+        #
+        #    [
+        #        {
+        #            "file_id":123456789,
+        #            "title":"This is my song",
+        #            "size":1473117,
+        #            "uploaded_on":"2020-09-25",
+        #            "rating":0,
+        #            "plays":0,
+        #            "replay_gain":"1.6",
+        #            "length":155,
+        #            "year":0,
+        #            "uid":"",
+        #            "track_no":2,
+        #            "enid":0,
+        #            "uploaded_time":"11:10:10",
+        #            "file":"/129/27c/265/189218694",
+        #            "artwork_id":789456,
+        #            "artist_id":753159,
+        #            "trashed":false,
+        #            "genre":"Other",
+        #            "type":"audio/mpeg3",
+        #            "album_id":159753,
+        #            "path":"User/Bubba/My Music/My Mixes/I <3 U",
+        #            "album":"I <3 U",
+        #            "artist":"Unknown"
+        #        }
+        #    ]
+
+        dRet: Dict
+
+        self._LogDebug(uMsg="Updating track")
+        dRet = self._PostCommand(
+            uCommand="update_track",
+            dAddPar={"tracks": aTracks, "supported_types": false},
+        )
+        return dRet.get("result", False)
+
+    def UploadTrack(self, uFilepath: str, bForce: bool = False):  # -> UploadStatus:
         """
         Uploads a track file to the user library in iBroadcast
 
