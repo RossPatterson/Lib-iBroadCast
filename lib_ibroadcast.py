@@ -161,7 +161,7 @@ class ciBroadCast:
         self._uUserName = uUserName
         self._uPassword = uPassword
 
-        self._LogDebug(uMsg='Logging in ....')
+        self._LogDebug(uMsg='Logging in with password ....')
 
         # Build a request object.
         uReq:str = json.dumps({
@@ -183,6 +183,37 @@ class ciBroadCast:
         self._uToken                = dRet['user']['token']
         self._LogDebug(uMsg='Login successful')
         return True
+
+    def TokenLogin(self,*, uLoginToken:str) -> bool:
+        """
+        Login to iBroadcast with the given logintoken
+        :param str uLoginToken: the iBroadcast logintoken
+        :return: True if successful
+        """
+        self._LogDebug(uMsg='Logging in with token....')
+        # Build a request object.
+        uReq:str = json.dumps({
+            'mode' : 'login_token',
+            'login_token': uLoginToken,
+            'app_id': '???', # was 1007
+            'type': 'account',
+            'version': self._uVersion,
+            'client': self._uClient,
+            #'device_name' : self.DEVICE_NAME,
+            #'user_agent' : self.USER_AGENT
+        })
+        dRet = self._Post(uUrl="https://api.ibroadcast.com/s/JSON/", uData=uReq, dHeaders=self._dHeaders).json()
+        print(dRet)
+
+        if 'user' not in dRet:
+            self._LogError(uMsg=f"Invalid login{dRet['message']}")
+            raise ValueError(dRet['message'])
+
+        self._uUserId               = dRet['user']['id']
+        self._uToken                = dRet['user']['token']
+        self._LogDebug(uMsg=f'Login successful - user_id: {dRet["user"]["id"]}')
+        return True
+
 
     def Logout(self) -> None:
         """

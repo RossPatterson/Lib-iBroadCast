@@ -9,7 +9,9 @@ Usage:
 
     from lib_ibroadcast import ciBroadCast
     oiBroadCast = ciBroadCast()
-    oiBroadCast.Login(uUserName='your ibroadcast email',uPassword='ypur ibroadcast password')
+    # uncomment one
+    # oiBroadCast.Login(uUserName='your ibroadcast email',uPassword='your ibroadcast password')
+    # oiBroadCast.Login(uLoginToken='your ibroadcast logintoken')
     # uncomment one or both
     # oiBroadCast.SelectAlbumsByAlbumName(uFilter='Metal-Hard Rock Covers*')
     # oiBroadCast.SelectTracksByFolder(uFolder='Musik/Full Albums/Sampler')

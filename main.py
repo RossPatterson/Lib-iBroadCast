@@ -23,8 +23,9 @@ def setup_subcommands() -> argparse.ArgumentParser:
         """
         parser.add_argument("-d", "--dryrun", action="store_true", default=False, help="do not actually make changes")
         parser.add_argument("-p", "--password", help="password for iBroadcast account")
-        parser.add_argument("-u", "--username", required=True, help="username for iBroadcast account")
+        parser.add_argument("-u", "--username", help="username for iBroadcast account")
         parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Verbose logging")
+        parser.add_argument("-l", "--logintoken", help="login token for iBroadcast account")
 
     parser:argparse.ArgumentParser = argparse.ArgumentParser(description="iBroadcast CLI")
     parser.add_argument("-V", "--version", action="version", version = f"{parser.prog} version 1.0.0")
@@ -155,11 +156,19 @@ if __name__ == '__main__':
     if args.operation == "help":
         parser.print_help()
         exit(0)
-    if args.password is None:
+    if args.logintoken is None and args.username is None:
+        logger.error("Either --logintoken or --username must be specified.")
+        exit(1)
+    if args.username is not None and args.password is None:
         args.password = getpass.getpass(f"Enter password for {args.username}: ")
     if args.dryrun:
         logger.info("Changes are suppressed by --dryrun")
     ibroadcast_api:ciBroadCast = ciBroadCast(bAllowUndocumentedAPIs=True, iLogLevel=log_level)
-    ibroadcast_api.Login(uUserName=args.username, uPassword=args.password)
+    if args.username is not None:
+        bLoggedIn= ibroadcast_api.Login(uUserName=args.username, uPassword=args.password)
+    else:
+        bLoggedIn = ibroadcast_api.TokenLogin(uLoginToken=args.logintoken)
+    if not bLoggedIn:
+        exit(1)
     args.operation_func(args)
     ibroadcast_api.Logout()
